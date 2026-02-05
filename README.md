@@ -4,7 +4,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
-![Version](https://img.shields.io/badge/Version-1.0.1(3)-orange.svg)
+![Version](https://img.shields.io/badge/Version-1.0.1(2)-orange.svg)
 
 **一个让班主任不再因为统计请假而掉头发的神器**
 
@@ -37,7 +37,7 @@
 
 | 项目 | 内容 |
 |:----:|:----:|
-| **当前版本** | v1.0.1(3) |
+| **当前版本** | v1.0.1(2) |
 | **更新日期** | 2025-02-05 |
 | **作者** | 112114141 |
 | **开发语言** | ![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg) |
@@ -274,7 +274,7 @@ pyinstaller --onefile --noconsole --name "班级请假记录系统" "班级请�
 ## 🌟 更新日志
 
 <details>
-<summary><b>v1.0.1(3) (2025-02-05)</b></summary>
+<summary><b>v1.0.1(2) (2025-02-05)</b></summary>
 
 ### 🔧 优化
 - 优化导入备份弹窗,去掉"取消"按钮,简化操作流程
@@ -283,7 +283,7 @@ pyinstaller --onefile --noconsole --name "班级请假记录系统" "班级请�
 </details>
 
 <details>
-<summary><b>v1.0.1(2) (2025-02-04)</b></summary>
+<summary><b>v1.0.1 (2025-02-03)</b></summary>
 
 ### ✨ 新增
 - 添加设置选项卡,支持个性化配置
