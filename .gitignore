@@ -38,8 +38,13 @@ dist/
 .arts/
 
 # Data files
+data/
 students.json
 leave_records.json
+backup/
+
+# Development
+DEVELOPMENT.md
 
 # OS
 .DS_Store

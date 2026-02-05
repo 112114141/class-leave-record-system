@@ -129,9 +129,14 @@ class AnimationHelper:
 
 class StudentManager:
     """学生名单管理"""
-    
+
     def __init__(self, data_file: str = "students.json"):
-        self.data_file = data_file
+        # 确保data文件夹存在
+        data_dir = 'data'
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+
+        self.data_file = os.path.join(data_dir, data_file)
         self.students = []
         self.load_students()
     
@@ -183,53 +188,21 @@ class StudentManager:
     
     def get_students(self) -> List[str]:
         """获取学生列表（按拼音排序）"""
-        # 简单的拼音首字母排序
-        def get_pinyin_first(name):
-            # 常用姓氏的拼音首字母映射
-            pinyin_map = {
-                'a': ['阿', '艾', '安'],
-                'b': ['白', '包', '贝', '毕', '边', '薄', '卜'],
-                'c': ['蔡', '曹', '岑', '查', '柴', '常', '车', '成', '程', '池', '迟', '楚', '褚'],
-                'd': ['戴', '邓', '狄', '丁', '董', '杜', '段'],
-                'e': ['鄂'],
-                'f': ['范', '方', '费', '冯', '傅', '富'],
-                'g': ['甘', '高', '葛', '耿', '龚', '古', '顾', '关', '管', '桂', '郭', '国'],
-                'h': ['海', '韩', '郝', '何', '贺', '洪', '侯', '胡', '花', '华', '黄', '霍'],
-                'i': ['伊'],
-                'j': ['季', '纪', '贾', '简', '江', '姜', '蒋', '焦', '解', '金', '荆', '景', '经'],
-                'k': ['康', '孔'],
-                'l': ['赖', '蓝', '郎', '乐', '雷', '黎', '李', '厉', '连', '梁', '廖', '林', '凌', '刘', '柳', '龙', '娄', '卢', '鲁', '陆', '路', '吕', '罗'],
-                'm': ['马', '毛', '梅', '孟', '莫', '穆'],
-                'n': ['倪', '牛'],
-                'o': ['欧'],
-                'p': ['潘', '庞', '彭', '皮', '蒲', '浦'],
-                'q': ['戚', '钱', '乔', '秦', '邱', '屈', '瞿', '曲', '全'],
-                'r': ['任', '荣', '阮', '容'],
-                's': ['桑', '沙', '商', '邵', '申', '沈', '盛', '施', '石', '史', '舒', '司', '宋', '苏', '孙'],
-                't': ['谈', '谭', '汤', '唐', '陶', '田', '童'],
-                'u': ['尤'],
-                'v': ['魏'],
-                'w': ['万', '汪', '王', '韦', '卫', '魏', '温', '文', '翁', '吴', '伍'],
-                'x': ['奚', '席', '夏', '向', '项', '萧', '肖', '谢', '邢', '熊', '徐', '许', '薛'],
-                'y': ['严', '言', '颜', '阎', '晏', '燕', '杨', '姚', '叶', '易', '殷', '尹', '应', '英', '雍', '于', '余', '俞', '虞', '郁', '袁', '岳', '云'],
-                'z': ['曾', '詹', '张', '章', '赵', '郑', '钟', '周', '朱', '诸', '庄', '邹', '祖']
-            }
-            
-            first_char = name[0]
-            for pinyin, chars in pinyin_map.items():
-                if first_char in chars:
-                    return pinyin
-            # 如果找不到，返回'z'作为默认值
-            return 'z'
-        
-        return sorted(self.students, key=lambda x: get_pinyin_first(x))
+        from pypinyin import lazy_pinyin
+
+        return sorted(self.students, key=lambda x: ''.join(lazy_pinyin(x)))
 
 
 class LeaveRecordManager:
     """请假记录管理（改进版 - 添加原子性保护和线程安全）"""
 
     def __init__(self, data_file: str = "leave_records.json"):
-        self.data_file = data_file
+        # 确保data文件夹存在
+        data_dir = 'data'
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+
+        self.data_file = os.path.join(data_dir, data_file)
         self.records = {}  # {date: {name: {"type": "half"/"full"}}}
         self.load_records()
 
@@ -301,7 +274,7 @@ class LeaveRecordManager:
         """获取所有有记录的日期"""
         return sorted(self.records.keys())
     
-    def get_frequent_leavers(self, days: int = 10, threshold: int = 2) -> List[str]:
+    def get_frequent_leavers(self, days: int = 5, threshold: int = 3) -> List[str]:
         """获取常请假的学生"""
         end_date = datetime.datetime.now()
         start_date = end_date - datetime.timedelta(days=days)
@@ -782,7 +755,7 @@ class LeaveRecordApp:
         add_btn = tk.Button(parent, text="➕ 添加学生",
                           command=self.show_add_student_dialog,
                           bg=self.colors['accent'], fg=self.colors['white'],
-                          font=('Microsoft YaHei UI', 10, 'bold'), relief='flat',
+                          font=('Segoe UI Symbol', 10, 'bold'), relief='flat',
                           padx=12, pady=6, cursor='hand2', bd=0)
         add_btn.pack(side=tk.LEFT, padx=(0, 8))
         self._add_button_hover_effect(add_btn, self.colors['accent'], self.colors['accent_hover'])
@@ -790,7 +763,7 @@ class LeaveRecordApp:
         import_btn = tk.Button(parent, text="📥 导入学生",
                              command=self.show_batch_import_dialog,
                              bg=self.colors['warning'], fg=self.colors['white'],
-                             font=('Microsoft YaHei UI', 10, 'bold'), relief='flat',
+                             font=('Segoe UI Symbol', 10, 'bold'), relief='flat',
                              padx=12, pady=6, cursor='hand2', bd=0)
         import_btn.pack(side=tk.LEFT, padx=(0, 8))
         self._add_button_hover_effect(import_btn, self.colors['warning'], '#D68910')
@@ -798,7 +771,7 @@ class LeaveRecordApp:
         remove_btn = tk.Button(parent, text="❌ 删除学生",
                              command=self.show_remove_student_dialog,
                              bg=self.colors['danger'], fg=self.colors['white'],
-                             font=('Microsoft YaHei UI', 10, 'bold'), relief='flat',
+                             font=('Segoe UI Symbol', 10, 'bold'), relief='flat',
                              padx=12, pady=6, cursor='hand2', bd=0)
         remove_btn.pack(side=tk.LEFT, padx=(15, 8))
         self._add_button_hover_effect(remove_btn, self.colors['danger'], '#CB4335')
@@ -1120,6 +1093,11 @@ class LeaveRecordApp:
         self.notebook.add(stats_export_tab, text="📊 统计")
         self.create_stats_export_tab(stats_export_tab)
 
+        # 设置选项卡
+        settings_tab = tk.Frame(self.notebook, bg=self.colors['white'])
+        self.notebook.add(settings_tab, text="⚙️ 设置")
+        self.create_settings_tab(settings_tab)
+
         # 教程选项卡
         tutorial_tab = tk.Frame(self.notebook, bg=self.colors['white'])
         self.notebook.add(tutorial_tab, text="📖 教程")
@@ -1191,7 +1169,7 @@ class LeaveRecordApp:
         self._bind_mousewheel(self.students_tree)
         
         # 常请假名单区域
-        frequent_label = tk.Label(parent, text="⚠️ 常请假（10天内≥2次）", 
+        frequent_label = tk.Label(parent, text="⚠️ 常请假（5天内≥3次）",
                                 font=('Microsoft YaHei', 12, 'bold'),
                                 bg=self.colors['white'], fg=self.colors['danger'])
         frequent_label.pack(pady=(0, 10))
@@ -1309,10 +1287,10 @@ class LeaveRecordApp:
         refresh_btn.pack(side=tk.LEFT, padx=(0, 10))
         self._add_button_hover_effect(refresh_btn, self.colors['accent'], self.colors['accent_hover'])
         
-        export_btn = tk.Button(button_frame, text="📥 导出Excel", 
+        export_btn = tk.Button(button_frame, text="📥 导出Excel",
                               command=self.export_to_excel,
                               bg=self.colors['success'], fg=self.colors['white'],
-                              font=('Microsoft YaHei', 10, 'bold'), relief='flat',
+                              font=('Segoe UI Symbol', 10, 'bold'), relief='flat',
                               padx=16, pady=8, cursor='hand2')
         export_btn.pack(side=tk.LEFT)
         self._add_button_hover_effect(export_btn, self.colors['success'], '#229954')
@@ -1362,7 +1340,273 @@ class LeaveRecordApp:
         self._is_resizing = False
         self._last_resize_time = 0  # 记录最后一次调整时间
         self.root.bind('<Configure>', self.on_window_resize)
-    
+
+    def create_settings_tab(self, parent):
+        """创建设置选项卡 - 分组布局"""
+        # 创建主容器
+        main_frame = tk.Frame(parent, bg=self.colors['white'])
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=30, pady=30)
+
+        # 标题
+        title_frame = tk.Frame(main_frame, bg=self.colors['accent'], padx=20, pady=15)
+        title_frame.pack(fill=tk.X, pady=(0, 25))
+
+        title_label = tk.Label(title_frame, text="⚙️ 系统设置",
+                              font=('Microsoft YaHei', 18, 'bold'),
+                              bg=self.colors['accent'], fg=self.colors['white'])
+        title_label.pack()
+
+        # 常规设置分组
+        general_frame = tk.LabelFrame(main_frame, text="  常规设置  ",
+                                       font=('Microsoft YaHei', 13, 'bold'),
+                                       bg=self.colors['white'], fg=self.colors['fg'],
+                                       padx=20, pady=20)
+        general_frame.pack(fill=tk.X, pady=(0, 20))
+
+        # 开机自启Web服务器
+        self.auto_start_web_var = tk.BooleanVar(value=True)
+        auto_start_web_frame = tk.Frame(general_frame, bg=self.colors['white'])
+        auto_start_web_frame.pack(fill=tk.X, pady=(0, 10))
+
+        auto_start_web_check = tk.Checkbutton(auto_start_web_frame, text="开机自启Web服务器",
+                                             variable=self.auto_start_web_var,
+                                             font=('Microsoft YaHei', 12),
+                                             bg=self.colors['white'], fg=self.colors['fg'],
+                                             activebackground=self.colors['white'],
+                                             selectcolor=self.colors['light_gray'])
+        auto_start_web_check.pack(side=tk.LEFT)
+
+        auto_start_web_desc = tk.Label(auto_start_web_frame, text="  (开机时自动启动Web服务器,方便手机访问)",
+                                      font=('Microsoft YaHei', 10), fg=self.colors['fg'],
+                                      bg=self.colors['white'])
+        auto_start_web_desc.pack(side=tk.LEFT)
+
+        # 备份设置分组
+        backup_frame = tk.LabelFrame(main_frame, text="  备份设置  ",
+                                      font=('Microsoft YaHei', 13, 'bold'),
+                                      bg=self.colors['white'], fg=self.colors['fg'],
+                                      padx=20, pady=20)
+        backup_frame.pack(fill=tk.X, pady=(0, 20))
+
+        # 自动备份频率
+        backup_freq_frame = tk.Frame(backup_frame, bg=self.colors['white'])
+        backup_freq_frame.pack(fill=tk.X, pady=(0, 15))
+
+        backup_freq_label = tk.Label(backup_freq_frame, text="自动备份频率(天):",
+                                    font=('Microsoft YaHei', 12),
+                                    bg=self.colors['white'], fg=self.colors['fg'])
+        backup_freq_label.pack(side=tk.LEFT)
+
+        self.backup_freq_var = tk.IntVar(value=1)
+        backup_freq_spinbox = tk.Spinbox(backup_freq_frame, from_=1, to=7,
+                                        textvariable=self.backup_freq_var,
+                                        width=8,
+                                        font=('Microsoft YaHei', 11))
+        backup_freq_spinbox.pack(side=tk.LEFT, padx=(10, 0))
+
+        backup_freq_desc = tk.Label(backup_freq_frame, text="  (每N天自动备份一次数据)",
+                                  font=('Microsoft YaHei', 10), fg=self.colors['fg'],
+                                  bg=self.colors['white'])
+        backup_freq_desc.pack(side=tk.LEFT, padx=(10, 0))
+
+        # 保留备份文件数量
+        backup_delete_frame = tk.Frame(backup_frame, bg=self.colors['white'])
+        backup_delete_frame.pack(fill=tk.X, pady=(0, 15))
+
+        backup_delete_label = tk.Label(backup_delete_frame, text="保留备份文件数量:",
+                                      font=('Microsoft YaHei', 12),
+                                      bg=self.colors['white'], fg=self.colors['fg'])
+        backup_delete_label.pack(side=tk.LEFT)
+
+        self.backup_delete_var = tk.IntVar(value=3)
+        backup_delete_spinbox = tk.Spinbox(backup_delete_frame, from_=1, to=999,
+                                          textvariable=self.backup_delete_var,
+                                          width=8,
+                                          font=('Microsoft YaHei', 11))
+        backup_delete_spinbox.pack(side=tk.LEFT, padx=(10, 0))
+
+        backup_delete_desc = tk.Label(backup_delete_frame, text="  (自动删除旧备份,只保留最新的N个文件)",
+                                    font=('Microsoft YaHei', 10), fg=self.colors['fg'],
+                                    bg=self.colors['white'])
+        backup_delete_desc.pack(side=tk.LEFT, padx=(10, 0))
+
+        # 备份按钮组
+        backup_buttons_frame = tk.Frame(backup_frame, bg=self.colors['white'])
+        backup_buttons_frame.pack(fill=tk.X, pady=(10, 0))
+
+        # 手动备份按钮
+        create_backup_btn = tk.Button(backup_buttons_frame, text="💾 立即备份",
+                                     command=self.create_backup,
+                                     bg=self.colors['success'], fg=self.colors['white'],
+                                     font=('Segoe UI Symbol', 11, 'bold'), relief='flat',
+                                     padx=20, pady=10, cursor='hand2')
+        create_backup_btn.pack(side=tk.LEFT, padx=(0, 15))
+        self._add_button_hover_effect(create_backup_btn, self.colors['success'], '#229954')
+
+        # 备份导入按钮
+        import_backup_btn = tk.Button(backup_buttons_frame, text="📥 备份导入",
+                                     command=self.import_backup,
+                                     bg=self.colors['accent'], fg=self.colors['white'],
+                                     font=('Segoe UI Symbol', 11, 'bold'), relief='flat',
+                                     padx=20, pady=10, cursor='hand2')
+        import_backup_btn.pack(side=tk.LEFT)
+        self._add_button_hover_effect(import_backup_btn, self.colors['accent'], self.colors['accent_hover'])
+
+    def create_backup(self):
+        """创建备份"""
+        try:
+            # 检查数据文件夹是否存在
+            data_dir = 'data'
+            if not os.path.exists(data_dir):
+                messagebox.showwarning("警告", "数据文件夹不存在!\n请先运行程序并添加学生或录入请假记录,然后再创建备份。")
+                return
+
+            # 检查是否有数据文件
+            data_files = [f for f in os.listdir(data_dir) if f.endswith('.json')]
+            if not data_files:
+                messagebox.showwarning("警告", "没有找到数据文件!\n请先添加学生或录入请假记录,然后再创建备份。")
+                return
+
+            # 检查备份文件夹是否存在
+            backup_dir = 'backup'
+            if not os.path.exists(backup_dir):
+                os.makedirs(backup_dir)
+
+            # 生成备份文件名
+            from datetime import datetime
+            backup_filename = f"手动备份-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.zip"
+            backup_path = os.path.join(backup_dir, backup_filename)
+
+            # 创建ZIP文件
+            import zipfile
+            with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                # 添加数据文件
+                for file in data_files:
+                    file_path = os.path.join(data_dir, file)
+                    if os.path.isfile(file_path):
+                        zipf.write(file_path, os.path.basename(file_path))
+
+            messagebox.showinfo("成功", f"备份已创建: {backup_filename}")
+        except Exception as e:
+            messagebox.showerror("错误", f"创建备份失败: {str(e)}")
+
+    def import_backup(self):
+        """导入备份"""
+        # 检查备份文件夹是否存在
+        backup_dir = 'backup'
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+
+        # 获取备份文件列表
+        backup_files = [f for f in os.listdir(backup_dir) if f.endswith('.zip')]
+
+        if not backup_files:
+            messagebox.showinfo("提示", "没有找到备份文件!")
+            return
+
+        # 创建备份文件选择对话框
+        dialog = tk.Toplevel(self.root)
+        dialog.title("选择备份文件")
+        dialog.geometry("450x350")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # 居中显示
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = (dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (dialog.winfo_screenheight() // 2) - (height // 2)
+        dialog.geometry(f'{width}x{height}+{x}+{y}')
+
+        # 标题
+        tk.Label(dialog, text="选择要恢复的备份文件:",
+                font=('Microsoft YaHei', 11, 'bold'),
+                bg=self.colors['white'], fg=self.colors['fg']).pack(pady=10)
+
+        # 备份文件列表
+        listbox = tk.Listbox(dialog, height=10, width=40)
+        scrollbar = ttk.Scrollbar(dialog, orient=tk.VERTICAL, command=listbox.yview)
+        listbox.config(yscrollcommand=scrollbar.set)
+
+        for backup_file in sorted(backup_files, reverse=True):
+            listbox.insert(tk.END, backup_file)
+
+        listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(15, 0), pady=10)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 15), pady=10)
+
+        # 添加鼠标滚轮滚动
+        self._bind_mousewheel_to_listbox(listbox)
+
+        def on_import():
+            selection = listbox.curselection()
+            if not selection:
+                messagebox.showwarning("警告", "请选择一个备份文件!")
+                return
+
+            selected_file = listbox.get(selection[0])
+            backup_path = os.path.join(backup_dir, selected_file)
+
+            # 确认对话框
+            if messagebox.askyesno("确认", f"确定要恢复备份 '{selected_file}' 吗?\n当前数据将被覆盖!"):
+                try:
+                    # 解压备份文件到data文件夹
+                    import zipfile
+                    data_dir = 'data'
+                    if not os.path.exists(data_dir):
+                        os.makedirs(data_dir)
+
+                    with zipfile.ZipFile(backup_path, 'r') as zip_ref:
+                        zip_ref.extractall(data_dir)
+
+                    messagebox.showinfo("成功", "备份已恢复!")
+                    dialog.destroy()
+
+                    # 重新加载数据
+                    self.student_manager.load_students()
+                    self.leave_manager.load_records()
+                    self.refresh_students_list()
+                    self.refresh_frequent_list()
+                except Exception as e:
+                    messagebox.showerror("错误", f"恢复备份失败: {str(e)}")
+
+        def on_delete():
+            selection = listbox.curselection()
+            if not selection:
+                messagebox.showwarning("警告", "请选择要删除的备份文件!")
+                return
+
+            selected_file = listbox.get(selection[0])
+            backup_path = os.path.join(backup_dir, selected_file)
+
+            # 确认对话框
+            if messagebox.askyesno("确认", f"确定要删除备份 '{selected_file}' 吗?\n此操作无法撤销!"):
+                try:
+                    os.remove(backup_path)
+                    # 从列表中删除
+                    listbox.delete(selection[0])
+                    messagebox.showinfo("成功", "备份已删除!")
+                except Exception as e:
+                    messagebox.showerror("错误", f"删除备份失败: {str(e)}")
+
+        # 按钮
+        button_frame = tk.Frame(dialog, bg=self.colors['white'])
+        button_frame.pack(pady=10)
+
+        # 左侧按钮组(确定和删除上下排列)
+        left_button_frame = tk.Frame(button_frame, bg=self.colors['white'])
+        left_button_frame.pack(side=tk.LEFT, padx=5)
+
+        tk.Button(left_button_frame, text="确定", command=on_import,
+                bg=self.colors['success'], fg=self.colors['white'],
+                font=('Microsoft YaHei', 10), relief='flat',
+                padx=16, pady=6, cursor='hand2').pack(side=tk.TOP, pady=2)
+
+        tk.Button(left_button_frame, text="删除", command=on_delete,
+                bg=self.colors['danger'], fg=self.colors['white'],
+                font=('Microsoft YaHei', 10), relief='flat',
+                padx=16, pady=6, cursor='hand2').pack(side=tk.TOP, pady=2)
+
     def create_tutorial_tab(self, parent):
         """创建教程选项卡 - 四格布局"""
         # 创建主容器
