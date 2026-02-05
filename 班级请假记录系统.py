@@ -4,6 +4,7 @@
 """
 
 import os
+import sys
 import json
 import datetime
 from typing import List, Dict, Tuple, Optional
@@ -20,8 +21,9 @@ from openpyxl.utils import get_column_letter
 import threading
 import shutil
 
-
-class AnimationHelper:
+# 获取程序运行目录
+if getattr(sys, 'frozen', False):
+    # 打包后的以
     """动画效果辅助类"""
     
     @staticmethod
@@ -557,7 +559,32 @@ class LeaveRecordApp:
         self.root.state('zoomed')  # 最大化窗口
         self.root.minsize(1200, 800)
 
-        # 设置窗口图标和背景
+        # 设置窗口图标
+        try:
+            icon_path = os.path.join(BASE_DIR, 'calendar_icon.ico')
+            if os.path.exists(icon_path):
+                # 尝试使用iconbitmap方法
+                try:
+                    self.root.iconbitmap(icon_path)
+                except:
+                    # 如果失败,尝试使用PIL加载PNG图标并转换为tkinter格式
+                    try:
+                        from PIL import Image, ImageTk
+                        png_icon_path = os.path.join(BASE_DIR, 'calendar_icon.png')
+                        if os.path.exists(png_icon_path):
+                            # 加载PNG图标
+                            img = Image.open(png_icon_path)
+                            # 调整大小为32x32(适合窗口图标)
+                            img = img.resize((32, 32), Image.Resampling.LANCZOS)
+                            # 转换为tkinter格式
+                            icon_image = ImageTk.PhotoImage(img)
+                            self.root.iconphoto(False, icon_image)
+                    except:
+                        pass
+        except:
+            pass  # 如果图标文件不存在,忽略错误
+
+        # 设置窗口背景
         try:
             self.root.configure(bg=self.colors['bg'])
         except:
@@ -593,6 +620,9 @@ class LeaveRecordApp:
 
     def on_closing(self):
         """关闭窗口时的处理"""
+        # 保存设置
+        self.save_settings()
+
         if self.has_unsaved_changes:
             if messagebox.askyesno("未保存的修改", "检测到有未保存的请假记录，是否保存？"):
                 self.save_leave_record()
@@ -731,7 +761,19 @@ class LeaveRecordApp:
 
         # 创建右侧面板内容
         self.create_right_panel(right_panel)
-    
+
+        # 创建底部状态栏
+        self.status_bar = tk.Label(self.root, text="就绪",
+                                  bg=self.colors['light_gray'], fg=self.colors['fg'],
+                                  font=('Microsoft YaHei', 11),
+                                  anchor='w', padx=10, pady=5)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    def update_status(self, message):
+        """更新状态栏信息"""
+        if hasattr(self, 'status_bar'):
+            self.status_bar.config(text=message)
+
     def create_toolbar(self, parent):
         """创建顶部工具栏（宽松设计 - 添加学生管理）"""
         # 标题
@@ -1169,7 +1211,7 @@ class LeaveRecordApp:
         self._bind_mousewheel(self.students_tree)
         
         # 常请假名单区域
-        frequent_label = tk.Label(parent, text="⚠️ 常请假（5天内≥3次）",
+        frequent_label = tk.Label(parent, text="⚠️ 常请假名单",
                                 font=('Microsoft YaHei', 12, 'bold'),
                                 bg=self.colors['white'], fg=self.colors['danger'])
         frequent_label.pack(pady=(0, 10))
@@ -1418,7 +1460,7 @@ class LeaveRecordApp:
                                       bg=self.colors['white'], fg=self.colors['fg'])
         backup_delete_label.pack(side=tk.LEFT)
 
-        self.backup_delete_var = tk.IntVar(value=3)
+        self.backup_delete_var = tk.IntVar(value=10)
         backup_delete_spinbox = tk.Spinbox(backup_delete_frame, from_=1, to=999,
                                           textvariable=self.backup_delete_var,
                                           width=8,
@@ -1429,6 +1471,57 @@ class LeaveRecordApp:
                                     font=('Microsoft YaHei', 10), fg=self.colors['fg'],
                                     bg=self.colors['white'])
         backup_delete_desc.pack(side=tk.LEFT, padx=(10, 0))
+
+        # 常请假名单设置分组
+        frequent_frame = tk.LabelFrame(main_frame, text="  常请假名单设置  ",
+                                       font=('Microsoft YaHei', 13, 'bold'),
+                                       bg=self.colors['white'], fg=self.colors['fg'],
+                                       padx=20, pady=20)
+        frequent_frame.pack(fill=tk.X, pady=(0, 20))
+
+        # 统计天数设置
+        frequent_days_frame = tk.Frame(frequent_frame, bg=self.colors['white'])
+        frequent_days_frame.pack(fill=tk.X, pady=(0, 15))
+
+        frequent_days_label = tk.Label(frequent_days_frame, text="统计天数(天):",
+                                      font=('Microsoft YaHei', 12),
+                                      bg=self.colors['white'], fg=self.colors['fg'])
+        frequent_days_label.pack(side=tk.LEFT)
+
+        self.frequent_days_var = tk.IntVar(value=5)
+        frequent_days_spinbox = tk.Spinbox(frequent_days_frame, from_=1, to=30,
+                                          textvariable=self.frequent_days_var,
+                                          width=8,
+                                          font=('Microsoft YaHei', 11),
+                                          command=self.on_frequent_days_change)
+        frequent_days_spinbox.pack(side=tk.LEFT, padx=(10, 0))
+
+        frequent_days_desc = tk.Label(frequent_days_frame, text="  (统计最近N天内的请假记录)",
+                                    font=('Microsoft YaHei', 10), fg=self.colors['fg'],
+                                    bg=self.colors['white'])
+        frequent_days_desc.pack(side=tk.LEFT, padx=(10, 0))
+
+        # 请假次数阈值设置
+        frequent_count_frame = tk.Frame(frequent_frame, bg=self.colors['white'])
+        frequent_count_frame.pack(fill=tk.X, pady=(0, 15))
+
+        frequent_count_label = tk.Label(frequent_count_frame, text="请假次数阈值:",
+                                       font=('Microsoft YaHei', 12),
+                                       bg=self.colors['white'], fg=self.colors['fg'])
+        frequent_count_label.pack(side=tk.LEFT)
+
+        self.frequent_count_var = tk.IntVar(value=3)
+        frequent_count_spinbox = tk.Spinbox(frequent_count_frame, from_=1, to=99,
+                                           textvariable=self.frequent_count_var,
+                                           width=8,
+                                           font=('Microsoft YaHei', 11),
+                                           command=self.on_frequent_count_change)
+        frequent_count_spinbox.pack(side=tk.LEFT, padx=(10, 0))
+
+        frequent_count_desc = tk.Label(frequent_count_frame, text="  (请假次数≥N次的学生将出现在名单中)",
+                                     font=('Microsoft YaHei', 10), fg=self.colors['fg'],
+                                     bg=self.colors['white'])
+        frequent_count_desc.pack(side=tk.LEFT, padx=(10, 0))
 
         # 备份按钮组
         backup_buttons_frame = tk.Frame(backup_frame, bg=self.colors['white'])
@@ -1452,20 +1545,22 @@ class LeaveRecordApp:
         import_backup_btn.pack(side=tk.LEFT)
         self._add_button_hover_effect(import_backup_btn, self.colors['accent'], self.colors['accent_hover'])
 
-    def create_backup(self):
+    def create_backup(self, is_auto=False):
         """创建备份"""
         try:
             # 检查数据文件夹是否存在
             data_dir = 'data'
             if not os.path.exists(data_dir):
-                messagebox.showwarning("警告", "数据文件夹不存在!\n请先运行程序并添加学生或录入请假记录,然后再创建备份。")
-                return
+                if not is_auto:
+                    messagebox.showwarning("警告", "数据文件夹不存在!\n请先运行程序并添加学生或录入请假记录,然后再创建备份。")
+                return False
 
             # 检查是否有数据文件
-            data_files = [f for f in os.listdir(data_dir) if f.endswith('.json')]
+            data_files = [f for f in os.listdir(data_dir) if f.endswith('.json') and f != 'settings.json']
             if not data_files:
-                messagebox.showwarning("警告", "没有找到数据文件!\n请先添加学生或录入请假记录,然后再创建备份。")
-                return
+                if not is_auto:
+                    messagebox.showwarning("警告", "没有找到数据文件!\n请先添加学生或录入请假记录,然后再创建备份。")
+                return False
 
             # 检查备份文件夹是否存在
             backup_dir = 'backup'
@@ -1474,21 +1569,121 @@ class LeaveRecordApp:
 
             # 生成备份文件名
             from datetime import datetime
-            backup_filename = f"手动备份-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.zip"
+            if is_auto:
+                backup_filename = f"自动备份-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.zip"
+            else:
+                backup_filename = f"手动备份-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.zip"
             backup_path = os.path.join(backup_dir, backup_filename)
 
             # 创建ZIP文件
             import zipfile
             with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                # 添加数据文件
+                # 添加数据文件(排除settings.json)
                 for file in data_files:
                     file_path = os.path.join(data_dir, file)
                     if os.path.isfile(file_path):
                         zipf.write(file_path, os.path.basename(file_path))
 
-            messagebox.showinfo("成功", f"备份已创建: {backup_filename}")
+            # 备份成功后,自动删除旧备份
+            self.auto_delete_old_backups()
+
+            # 显示备份成功信息
+            if is_auto:
+                backup_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                self.update_status(f"自动备份成功: {backup_time}")
+            else:
+                backup_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                self.update_status(f"手动备份成功: {backup_time}")
+
+            return True
         except Exception as e:
-            messagebox.showerror("错误", f"创建备份失败: {str(e)}")
+            if is_auto:
+                self.update_status(f"自动备份失败: {str(e)}")
+            else:
+                messagebox.showerror("错误", f"创建备份失败: {str(e)}")
+            return False
+
+    def auto_delete_old_backups(self):
+        """自动删除旧备份,保留最新的N个"""
+        try:
+            backup_dir = 'backup'
+            if not os.path.exists(backup_dir):
+                return
+
+            # 获取所有备份文件
+            backup_files = [f for f in os.listdir(backup_dir) if f.endswith('.zip')]
+
+            # 获取保留数量
+            keep_count = getattr(self, 'backup_delete_var', None)
+            if keep_count is None:
+                keep_count = 10  # 默认保留10个
+            else:
+                keep_count = keep_count.get()
+
+            if len(backup_files) > keep_count:
+                # 按创建时间排序,保留最新的N个
+                backup_files_with_time = []
+                for file in backup_files:
+                    file_path = os.path.join(backup_dir, file)
+                    creation_time = os.path.getctime(file_path)
+                    backup_files_with_time.append((file, creation_time))
+
+                # 按创建时间降序排序(最新的在前)
+                backup_files_with_time.sort(key=lambda x: x[1], reverse=True)
+
+                # 删除超过保留数量的旧备份
+                files_to_delete = backup_files_with_time[keep_count:]
+                for file, _ in files_to_delete:
+                    file_path = os.path.join(backup_dir, file)
+                    try:
+                        os.remove(file_path)
+                    except Exception as e:
+                        # 删除失败不影响自动备份
+                        pass
+        except Exception as e:
+            # 删除失败不影响自动备份
+            pass
+
+    def check_auto_backup(self):
+        """检查是否需要自动备份"""
+        try:
+            backup_dir = 'backup'
+            if not os.path.exists(backup_dir):
+                # 没有备份文件夹,需要创建备份
+                return True
+
+            # 获取所有备份文件
+            backup_files = [f for f in os.listdir(backup_dir) if f.endswith('.zip')]
+
+            if not backup_files:
+                # 没有备份文件,需要创建备份
+                return True
+
+            # 获取最后一个备份文件的创建时间
+            backup_files.sort(key=lambda x: os.path.getctime(os.path.join(backup_dir, x)))
+            last_backup_file = backup_files[-1]
+            last_backup_path = os.path.join(backup_dir, last_backup_file)
+            last_backup_time = os.path.getctime(last_backup_path)
+
+            # 获取自动备份频率
+            backup_freq = getattr(self, 'backup_freq_var', None)
+            if backup_freq is None:
+                backup_freq = 1  # 默认1天
+            else:
+                backup_freq = backup_freq.get()
+
+            # 计算距离上次备份的天数
+            current_time = datetime.datetime.now().timestamp()
+            days_since_last_backup = (current_time - last_backup_time) / (24 * 60 * 60)
+
+            # 如果距离上次备份超过设定的天数,需要备份
+            if days_since_last_backup >= backup_freq:
+                return True
+            else:
+                return False
+        except Exception as e:
+            # 检查失败,不进行自动备份
+            return False
 
     def import_backup(self):
         """导入备份"""
@@ -1529,7 +1724,17 @@ class LeaveRecordApp:
         scrollbar = ttk.Scrollbar(dialog, orient=tk.VERTICAL, command=listbox.yview)
         listbox.config(yscrollcommand=scrollbar.set)
 
-        for backup_file in sorted(backup_files, reverse=True):
+        # 按文件创建时间排序(最新的在前)
+        backup_files_with_time = []
+        for file in backup_files:
+            file_path = os.path.join(backup_dir, file)
+            creation_time = os.path.getctime(file_path)
+            backup_files_with_time.append((file, creation_time))
+
+        # 按创建时间降序排序(最新的在前)
+        backup_files_with_time.sort(key=lambda x: x[1], reverse=True)
+
+        for backup_file, _ in backup_files_with_time:
             listbox.insert(tk.END, backup_file)
 
         listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(15, 0), pady=10)
@@ -1548,7 +1753,7 @@ class LeaveRecordApp:
             backup_path = os.path.join(backup_dir, selected_file)
 
             # 确认对话框
-            if messagebox.askyesno("确认", f"确定要恢复备份 '{selected_file}' 吗?\n当前数据将被覆盖!"):
+            if messagebox.askyesno("警告", f"确定要恢复备份 '{selected_file}' 吗?\n当前数据将被覆盖!"):
                 try:
                     # 解压备份文件到data文件夹
                     import zipfile
@@ -1580,7 +1785,7 @@ class LeaveRecordApp:
             backup_path = os.path.join(backup_dir, selected_file)
 
             # 确认对话框
-            if messagebox.askyesno("确认", f"确定要删除备份 '{selected_file}' 吗?\n此操作无法撤销!"):
+            if messagebox.askyesno("警告", f"确定要删除备份 '{selected_file}' 吗?\n此操作无法撤销!"):
                 try:
                     os.remove(backup_path)
                     # 从列表中删除
@@ -1606,6 +1811,64 @@ class LeaveRecordApp:
                 bg=self.colors['danger'], fg=self.colors['white'],
                 font=('Microsoft YaHei', 10), relief='flat',
                 padx=16, pady=6, cursor='hand2').pack(side=tk.TOP, pady=2)
+
+    def on_frequent_days_change(self):
+        """统计天数改变时的处理"""
+        try:
+            days = self.frequent_days_var.get()
+            count = self.frequent_count_var.get()
+            if count > days:
+                self.frequent_count_var.set(days)
+            self.refresh_frequent_list()
+        except:
+            pass
+
+    def on_frequent_count_change(self):
+        """请假次数阈值改变时的处理"""
+        try:
+            days = self.frequent_days_var.get()
+            count = self.frequent_count_var.get()
+            if count > days:
+                self.frequent_count_var.set(days)
+            self.refresh_frequent_list()
+        except:
+            pass
+
+    def save_settings(self):
+        """保存设置到文件"""
+        try:
+            settings = {
+                'auto_start_web': self.auto_start_web_var.get(),
+                'backup_freq': self.backup_freq_var.get(),
+                'backup_delete': self.backup_delete_var.get(),
+                'frequent_days': self.frequent_days_var.get(),
+                'frequent_count': self.frequent_count_var.get()
+            }
+            settings_file = os.path.join('data', 'settings.json')
+            with open(settings_file, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            pass
+
+    def load_settings(self):
+        """从文件加载设置"""
+        try:
+            settings_file = os.path.join('data', 'settings.json')
+            if os.path.exists(settings_file):
+                with open(settings_file, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                    if 'auto_start_web' in settings:
+                        self.auto_start_web_var.set(settings['auto_start_web'])
+                    if 'backup_freq' in settings:
+                        self.backup_freq_var.set(settings['backup_freq'])
+                    if 'backup_delete' in settings:
+                        self.backup_delete_var.set(settings['backup_delete'])
+                    if 'frequent_days' in settings:
+                        self.frequent_days_var.set(settings['frequent_days'])
+                    if 'frequent_count' in settings:
+                        self.frequent_count_var.set(settings['frequent_count'])
+        except Exception as e:
+            pass
 
     def create_tutorial_tab(self, parent):
         """创建教程选项卡 - 四格布局"""
@@ -1769,6 +2032,9 @@ class LeaveRecordApp:
 
     def load_initial_data(self):
         """加载初始数据"""
+        # 加载设置
+        self.root.after(100, self.load_settings)
+
         # 高亮日历日期（使用防抖优化）
         self._schedule_calendar_highlight()
 
@@ -1792,6 +2058,18 @@ class LeaveRecordApp:
         # 只有当用户切换到统计选项卡时才刷新
         if hasattr(self, 'stats_canvas'):
             self.root.after(300, self.refresh_stats)
+
+        # 检查是否需要自动备份
+        self.root.after(500, self.check_and_perform_auto_backup)
+
+    def check_and_perform_auto_backup(self):
+        """检查并执行自动备份"""
+        try:
+            if self.check_auto_backup():
+                # 在后台线程中执行自动备份,避免阻塞UI
+                threading.Thread(target=lambda: self.create_backup(is_auto=True), daemon=True).start()
+        except Exception as e:
+            pass
     
     def refresh_students_list(self):
         """刷新学生列表（显示全天半天选项）"""
@@ -1812,7 +2090,21 @@ class LeaveRecordApp:
 
     def refresh_frequent_list(self):
         """刷新常请假名单（显示全天半天选项）"""
-        frequent_students = self.leave_manager.get_frequent_leavers()
+        # 获取设置中的参数
+        days = getattr(self, 'frequent_days_var', None)
+        threshold = getattr(self, 'frequent_count_var', None)
+
+        if days is None:
+            days = 5
+        else:
+            days = days.get()
+
+        if threshold is None:
+            threshold = 3
+        else:
+            threshold = threshold.get()
+
+        frequent_students = self.leave_manager.get_frequent_leavers(days=days, threshold=threshold)
 
         # 清空表格
         for item in self.frequent_tree.get_children():
